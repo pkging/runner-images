@@ -31,3 +31,5 @@ RUN echo "runner ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-github-runner && \
     usermod -aG docker runner
 
 USER runner
+
+ENTRYPOINT ["/home/runner/run.sh"]
