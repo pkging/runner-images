@@ -28,6 +28,8 @@ jobs:
           app-id: ${{ secrets.GH_APP_ID }}
           private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
           owner: lbetz
+          repositories: |
+            runner-images
 
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -40,7 +42,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/lbetz/actions-runner-homelab
+          images: ghcr.io/lbetz/runner-images/actions-runner-homelab
           tags: |
             type=raw,value=latest
             type=sha,prefix=sha-
