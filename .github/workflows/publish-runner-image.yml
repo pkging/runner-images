@@ -57,7 +57,7 @@ jobs:
           EXPECTED: ${{ steps.runner.outputs.version }}
         run: |
           set -euo pipefail
-          actual=$(docker run --rm --entrypoint /home/runner/bin/Runner.Listener runner-candidate:check --version | tail -n 1)
+          actual=$(docker run --rm --entrypoint /home/runner/bin/Runner.Listener runner-candidate:check --version | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$')
           test "$actual" = "$EXPECTED"
           docker run --rm --entrypoint /bin/sh runner-candidate:check -ec 'command -v docker; command -v git; command -v python3; command -v rpm; command -v gpg; test -x /home/runner/externals/node24/bin/node'
       - name: Publish Verified Candidate
