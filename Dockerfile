@@ -1,8 +1,18 @@
-FROM ghcr.io/actions/actions-runner:latest
+ARG RUNNER_VERSION=2.338.0
+FROM ghcr.io/actions/actions-runner:${RUNNER_VERSION}
 
 USER root
 
 ENV DEBIAN_FRONTEND=noninteractive
+
+# Reduce apt hangs in CI hooks by enforcing retries and request timeouts.
+RUN printf '%s\n' \
+  'Acquire::Retries "3";' \
+  'Acquire::http::Timeout "30";' \
+  'Acquire::https::Timeout "30";' \
+  'Acquire::ForceIPv4 "true";' \
+  'DPkg::Lock::Timeout "60";' \
+  > /etc/apt/apt.conf.d/99-ci-network-hardening
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
