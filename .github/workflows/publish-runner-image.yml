@@ -3,7 +3,7 @@ name: Publish Runner Image
 on:
   workflow_dispatch:
   schedule:
-    - cron: '23 5 * * *'
+    - cron: '23 * * * *'
   push:
     branches: [main]
     paths: [Dockerfile, .github/workflows/publish-runner-image.yml]
@@ -40,7 +40,22 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/setup-buildx-action@v3
+      - name: Check Published Image
+        id: check
+        env:
+          IMAGE: ${{ steps.runner.outputs.image }}
+          VERSION: ${{ steps.runner.outputs.version }}
+        run: |
+          set -euo pipefail
+          current=$(docker buildx imagetools inspect "$IMAGE:latest" --format '{{ index .Image.Config.Labels "de.prefork.runner.version" }}' 2>/dev/null || true)
+          echo "Published: ${current:-none}; released: $VERSION"
+          # Hourly runs only rebuild on a new runner release; the 05:xx UTC run refreshes base layers.
+          if [ "$GITHUB_EVENT_NAME" = schedule ] && [ "$current" = "$VERSION" ] && [ "$(date -u +%H)" != 05 ]; then
+            echo 'skip=true' >> "$GITHUB_OUTPUT"
+            echo "Image already at $VERSION, skipping build." >> "$GITHUB_STEP_SUMMARY"
+          fi
       - name: Build Candidate
+        if: steps.check.outputs.skip != 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -53,6 +68,7 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
             de.prefork.runner.version=${{ steps.runner.outputs.version }}
       - name: Verify Candidate
+        if: steps.check.outputs.skip != 'true'
         env:
           EXPECTED: ${{ steps.runner.outputs.version }}
         run: |
@@ -61,6 +77,7 @@ jobs:
           test "$actual" = "$EXPECTED"
           docker run --rm --entrypoint /bin/sh runner-candidate:check -ec 'command -v docker; command -v git; command -v python3; command -v rpm; command -v gpg; test -x /home/runner/externals/node24/bin/node'
       - name: Publish Verified Candidate
+        if: steps.check.outputs.skip != 'true'
         env:
           IMAGE: ${{ steps.runner.outputs.image }}
           VERSION: ${{ steps.runner.outputs.version }}
