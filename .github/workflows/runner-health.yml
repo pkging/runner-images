@@ -39,6 +39,8 @@ jobs:
           printf 'Runner `%s`, version `%s`, Docker reachable.\n' "$RUNNER_NAME" "$actual" >> "$GITHUB_STEP_SUMMARY"
 
   watchdog:
+    needs: sentinel
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
